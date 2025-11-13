@@ -262,3 +262,5 @@ echo "=========================================="
 echo "Creating AWS env vars..."
 echo 'export ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId)' >> ~/.bashrc
 source ~/.bashrc
+echo 'export PATH=$PATH:/var/lib/jenkins/.local/bin' >> /var/lib/jenkins/.bashrc
+source /var/lib/jenkins/.bashrc

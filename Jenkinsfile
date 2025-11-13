@@ -37,6 +37,7 @@ pipeline {
             agent { label 'master' }
             steps {
                 sh """
+                    export PATH=\$PATH:/var/lib/jenkins/.local/bin
                     pip install flake8 --quiet
                     flake8 app.py --ignore=E501
                 """
