@@ -1,0 +1,1 @@
+git workflow-aggregator docker-plugin credentials-binding pipeline-stage-view
