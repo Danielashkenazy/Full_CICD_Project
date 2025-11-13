@@ -56,7 +56,9 @@ systemctl daemon-reload
 mkdir -p /var/lib/jenkins/init.groovy.d
 mkdir -p /var/lib/jenkins/users/admin
 
-# 01 - Basic security setup and skipping setup wizard
+# -------------------------------
+# 01 - Basic security setup
+# -------------------------------
 cat > /var/lib/jenkins/init.groovy.d/01-basic-security.groovy <<'GROOVYEOF'
 #!groovy
 import jenkins.model.*
@@ -76,13 +78,15 @@ strategy.setAllowAnonymousRead(false)
 instance.setAuthorizationStrategy(strategy)
 
 instance.setInstallState(InstallState.INITIAL_SETUP_COMPLETED)
-
 instance.save()
 
 println "--> Configuration complete. Setup wizard disabled."
 GROOVYEOF
 
+
+# -------------------------------
 # 02 - Plugin installation
+# -------------------------------
 cat > /var/lib/jenkins/init.groovy.d/02-install-plugins.groovy <<'GROOVYEOF'
 #!groovy
 import jenkins.model.*
@@ -136,7 +140,10 @@ if (needRestart) {
 }
 GROOVYEOF
 
+
+# -------------------------------
 # 03 - Create JNLP agent node
+# -------------------------------
 cat > /var/lib/jenkins/init.groovy.d/03-create-agent-node.groovy <<'GROOVYEOF'
 #!groovy
 import jenkins.model.*
@@ -145,7 +152,6 @@ import hudson.slaves.*
 
 def instance = Jenkins.getInstance()
 
-// Wait for Jenkins to be fully ready
 sleep(10000)
 
 println "--> Creating JNLP agent node"
@@ -157,22 +163,14 @@ def numExecutors = 1
 def labelString = "app ec2-agent"
 def mode = Node.Mode.NORMAL
 
-// Check if node already exists
 def existingNode = instance.getNode(nodeName)
 if (existingNode != null) {
-    println "--> Agent '${nodeName}' already exists, skipping creation"
+    println "--> Agent '${nodeName}' already exists, skipping"
     return
 }
 
-// Create the JNLP launcher
 def launcher = new JNLPLauncher()
-
-// Create the node
-def agent = new DumbSlave(
-    nodeName,
-    remoteFS,
-    launcher
-)
+def agent = new DumbSlave(nodeName, remoteFS, launcher)
 
 agent.setNodeDescription(nodeDescription)
 agent.setNumExecutors(numExecutors)
@@ -180,19 +178,20 @@ agent.setLabelString(labelString)
 agent.setMode(mode)
 agent.setRetentionStrategy(new RetentionStrategy.Always())
 
-// Add the node
 instance.addNode(agent)
+instance.save()
 
 println "--> Agent '${nodeName}' created successfully"
-instance.save()
 GROOVYEOF
 
-####4- set jenkins location to private IP for agent authentication####
+
+# -------------------------------
+# 04 - Set Jenkins URL (private IP)
+# -------------------------------
 cat > /var/lib/jenkins/init.groovy.d/04-set-url.groovy <<'GROOVYEOF'
 import jenkins.model.*
 import java.net.URL
 
-// Get private IP from metadata
 def privateIp = "http://" + new URL("http://169.254.169.254/latest/meta-data/local-ipv4").text + ":8080/"
 
 println "--> Setting Jenkins URL to: ${privateIp}"
@@ -202,12 +201,39 @@ jlc.setUrl(privateIp)
 jlc.setAdminAddress("admin@local")
 jlc.save()
 
-
 println "--> Jenkins URL set successfully"
 GROOVYEOF
 
 
-# Set proper ownership
+# ---------------------------------------------------------------
+# 05 - NEW: Add "master" label to the built-in Jenkins controller
+# ---------------------------------------------------------------
+cat > /var/lib/jenkins/init.groovy.d/05-set-controller-label.groovy <<'GROOVYEOF'
+import jenkins.model.*
+
+controller (built-in node)
+def j = Jenkins.getInstance()
+
+def computer = j.getComputer('built-in')
+if (computer == null) {
+    println "--> WARNING: built-in computer not found, cannot set label"
+    return
+}
+
+def node = computer.getNode()
+if (node == null) {
+    println "--> WARNING: built-in node not found, cannot set label"
+    return
+}
+
+println "--> Setting label 'master' on controller node"
+node.setLabelString("master")
+node.save()
+j.save()
+GROOVYEOF
+
+
+# Apply permissions
 chown -R jenkins:jenkins /var/lib/jenkins
 chmod 644 /var/lib/jenkins/init.groovy.d/*.groovy
 
@@ -217,7 +243,6 @@ echo "=== Starting Jenkins with pre-configured settings ==="
 systemctl enable jenkins
 systemctl start jenkins
 
-# Wait for Jenkins to be ready
 echo "Waiting for Jenkins to start..."
 sleep 30
 
@@ -226,20 +251,14 @@ until curl -s http://localhost:8080 > /dev/null 2>&1; do
     sleep 10
 done
 
-# Wait for plugins and initialization
 sleep 60
-
-
 
 echo "Username: admin"
 echo "Password: Admin123!"
 echo "=========================================="
-echo "Agent 'app-agent' has been created and is waiting for connection"
+echo "Agent 'app-agent' is waiting for connection"
 echo "=========================================="
-echo "Creating AWS Enviroment variables for CI/CD pipelines..."
+
+echo "Creating AWS env vars..."
 echo 'export ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId)' >> ~/.bashrc
 source ~/.bashrc
-
-
-
-

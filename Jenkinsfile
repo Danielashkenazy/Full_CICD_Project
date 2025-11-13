@@ -37,7 +37,7 @@ pipeline {
             agent { label 'master' }
             steps {
                 sh """
-                    pip3 install flake8 --quiet
+                    pip install flake8 --quiet
                     flake8 app.py --ignore=E501
                 """
             }
@@ -47,7 +47,7 @@ pipeline {
             agent { label 'master' }
             steps {
                 sh """
-                    pip3 install pytest --quiet
+                    pip install pytest --quiet
                     pytest -q
                 """
             }
