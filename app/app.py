@@ -2,9 +2,11 @@ import flask
 
 app = flask.Flask(__name__)
 
+
 @app.route('/', methods=['GET'])
 def main():
     return "Hello, Devops!"
+
 
 @app.route('/echo', methods=['POST'])
 def echo():
