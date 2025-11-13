@@ -39,6 +39,7 @@ pipeline {
                 sh """
                     export PATH=\$PATH:/var/lib/jenkins/.local/bin
                     pip install flake8 --quiet
+                    cd app
                     flake8 app.py --ignore=E501
                 """
             }
@@ -49,6 +50,7 @@ pipeline {
             steps {
                 sh """
                     pip install pytest --quiet
+                    cd app
                     pytest -q
                 """
             }
