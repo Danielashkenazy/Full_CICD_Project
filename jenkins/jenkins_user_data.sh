@@ -13,7 +13,7 @@ apt-get update
 apt-get upgrade -y
 
 # Install Java 17
-apt-get install -y openjdk-17-jdk curl wget jq
+apt-get install -y openjdk-17-jdk curl wget jq python3-pip
 
 # Add Jenkins repository
 curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | tee \
