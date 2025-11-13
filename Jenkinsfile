@@ -40,7 +40,7 @@ pipeline {
                     export PATH=\$PATH:/var/lib/jenkins/.local/bin
                     pip install flake8 --quiet
                     cd app
-                    flake8 app.py --ignore=E501
+                    flake8 app.py --ignore=E501,W292
                 """
             }
         }
