@@ -20,7 +20,7 @@ variable "public_subnet_cidr" {
 }
 variable "own_ip" {
   description = "CIDR block for IP address for accessing the Jenkins instance. Replace with your own IP address"
-  default = "5.29.9.87/32"
+  default = "77.137.66.88/32"
 }
 variable "public_az" {
   description = "public subnet AZ"

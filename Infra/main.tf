@@ -137,10 +137,7 @@ resource "aws_instance" "jenkins_instance" {
     Name = "Jenkins_Instance"
   }
   
-  user_data = templatefile("../jenkins/jenkins_user_data.sh.tmpl", {
-    
-    ecr_url = aws_ecr_repository.app_repository.repository_url
-  })
+  user_data = file("../jenkins/jenkins_user_data.sh")
 }
 
 
@@ -149,22 +146,6 @@ resource "aws_security_group" "jenkins_sg" {
   description = "Allow Jenkins access"
   vpc_id      = aws_vpc.main.id
 
-  # חוקים פנימיים בלבד — גישה מבחוץ או מהמחשב שלך
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.own_ip]
-    description = "SSH from admin"
-  }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = [var.own_ip]
-    description = "Jenkins web UI from your IP"
-  }
 
   egress {
     from_port   = 0
@@ -228,6 +209,24 @@ resource "aws_security_group_rule" "jenkins_allow_app_ui" {
   source_security_group_id = aws_security_group.app_sg.id
   description              = "App can access Jenkins web UI"
 }
+resource "aws_security_group_rule" "jenkins_ssh_from_admin" {
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = [var.own_ip]
+  security_group_id = aws_security_group.jenkins_sg.id
+}
+resource "aws_security_group_rule" "jenkins_ui_from_admin" {
+  type              = "ingress"
+  from_port         = 8080
+  to_port           = 8080
+  protocol          = "tcp"
+  cidr_blocks       = [var.own_ip]
+  security_group_id = aws_security_group.jenkins_sg.id
+}
+
+
 
 resource "aws_security_group_rule" "jenkins_allow_app_jnlp" {
   type                     = "ingress"

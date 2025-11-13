@@ -240,13 +240,6 @@ echo "Creating AWS Enviroment variables for CI/CD pipelines..."
 echo 'export ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId)' >> ~/.bashrc
 source ~/.bashrc
 
-echo "Installing SSH key..."
-
-mkdir -p /home/ubuntu/.ssh
-chmod 700 /home/ubuntu/.ssh
 
 
-echo "getting ECR_UR"
-echo "export ECR_URL=\"${ecr_url}\"" >> /etc/profile.d/ecr.sh
-chmod +x /etc/profile.d/ecr.sh
 
