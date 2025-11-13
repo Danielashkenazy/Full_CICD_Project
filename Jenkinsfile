@@ -3,8 +3,6 @@ pipeline {
 
     environment {
         AWS_REGION = "us-east-1"
-        ACCOUNT_ID = sh(script: "curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId", returnStdout: true).trim()
-        ECR_URI    = "${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
         IMAGE_TAG  = "latest"
     }
 
@@ -14,6 +12,24 @@ pipeline {
             agent { label 'master' }
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Prepare Environment Variables') {
+            agent { label 'master' }
+            steps {
+                script {
+                    def acc = sh(
+                        script: "curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId",
+                        returnStdout: true
+                    ).trim()
+
+                    env.ACCOUNT_ID = acc
+                    env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
+
+                    echo "ACCOUNT_ID = ${env.ACCOUNT_ID}"
+                    echo "ECR_URI = ${env.ECR_URI}"
+                }
             }
         }
 
@@ -41,12 +57,10 @@ pipeline {
             agent { label 'master' }
             steps {
                 sh """
-                    echo "Logging into ECR..."
                     aws ecr get-login-password --region ${AWS_REGION} \
                         | docker login --username AWS --password-stdin ${ECR_URI}
 
-                    echo "Building Docker image..."
-                    docker build -t ${ECR_URI}:${IMAGE_TAG} .
+                    docker build -t ${ECR_URI}:${IMAGE_TAG} ./app
                 """
             }
         }
@@ -55,30 +69,24 @@ pipeline {
             agent { label 'master' }
             steps {
                 sh """
-                    echo "Pushing Docker image to ECR..."
                     docker push ${ECR_URI}:${IMAGE_TAG}
                 """
             }
         }
 
         stage('Deploy on App Server') {
-            agent { label 'app-agent' }
+            agent { label 'app' }
             steps {
                 sh """
-                    echo "Logging into ECR from app-agent..."
                     aws ecr get-login-password --region ${AWS_REGION} \
                         | docker login --username AWS --password-stdin ${ECR_URI}
 
-                    echo "Stopping old container..."
                     docker rm -f myapp || true
 
-                    echo "Pulling latest image..."
                     docker pull ${ECR_URI}:${IMAGE_TAG}
 
-                    echo "Starting new container..."
                     docker run -d --name myapp -p 80:80 ${ECR_URI}:${IMAGE_TAG}
 
-                    echo "Health check..."
                     sleep 3
                     curl -f http://localhost || (echo 'Health check failed' && exit 1)
                 """
