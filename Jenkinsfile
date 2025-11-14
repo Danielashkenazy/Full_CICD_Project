@@ -20,20 +20,29 @@ pipeline {
             agent { label 'master' }
             steps {
                 script {
+                    // בדיקה איפה aws CLI נמצא
+                    sh '''
+                        echo "=== Debug Info ==="
+                        echo "PATH: $PATH"
+                        which aws || echo "aws not found in PATH"
+                        aws --version || echo "aws command failed"
+                        whoami
+                        echo "=================="
+                    '''
                     
                     def acc = sh(
                         script: 'aws sts get-caller-identity --query Account --output text',
                         returnStdout: true
-                        ).trim()
-
+                    ).trim()
+        
                     env.ACCOUNT_ID = acc
-                        env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
-
+                    env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
+        
                     echo "ACCOUNT_ID = ${env.ACCOUNT_ID}"
                     echo "ECR_URI = ${env.ECR_URI}"
                 }
             }
-        }       
+        }
 
         stage('Lint') {
             agent { label 'master' }
