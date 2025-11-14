@@ -1,5 +1,5 @@
 pipeline {
-    agent none
+    agent { label 'master' }  
 
     environment {
         AWS_REGION = "us-east-1"
@@ -10,17 +10,14 @@ pipeline {
     stages {
 
         stage('Checkout') {
-            agent { label 'master' }
             steps {
                 checkout scm
             }
         }
 
         stage('Prepare Environment Variables') {
-            agent { label 'master' }
             steps {
                 script {
-                    // בדיקה איפה aws CLI נמצא
                     sh '''
                         echo "=== Debug Info ==="
                         echo "PATH: $PATH"
@@ -29,15 +26,15 @@ pipeline {
                         whoami
                         echo "=================="
                     '''
-                    
+
                     def acc = sh(
                         script: 'aws sts get-caller-identity --query Account --output text',
                         returnStdout: true
                     ).trim()
-        
+
                     env.ACCOUNT_ID = acc
                     env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
-        
+
                     echo "ACCOUNT_ID = ${env.ACCOUNT_ID}"
                     echo "ECR_URI = ${env.ECR_URI}"
                 }
@@ -45,7 +42,6 @@ pipeline {
         }
 
         stage('Lint') {
-            agent { label 'master' }
             steps {
                 sh """
                     pip install flake8 --quiet
@@ -56,7 +52,6 @@ pipeline {
         }
 
         stage('Unit Tests') {
-            agent { label 'master' }
             steps {
                 sh """
                     pip install pytest --quiet
@@ -67,7 +62,6 @@ pipeline {
         }
 
         stage('Build Docker Image and push to ECR') {
-            agent { label 'master' }
             steps {
                 sh """
                     aws ecr get-login-password --region ${AWS_REGION} \
@@ -80,8 +74,7 @@ pipeline {
         }
 
         stage('Deploy on App Server') {
-            agent { label 'app' }
-            steps {
+            agent { label 'app' }  
                 sh """
                     aws ecr get-login-password --region ${AWS_REGION} \
                         | docker login --username AWS --password-stdin ${ECR_URI}
