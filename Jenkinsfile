@@ -19,17 +19,36 @@ pipeline {
         stage('Prepare Environment Variables') {
             agent { label 'master' }
             steps {
-                script {
-                    def acc = sh(
-                        script: "curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId",
-                        returnStdout: true
-                    ).trim()
-
-                    env.ACCOUNT_ID = acc
-                    env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
-
-                    echo "ACCOUNT_ID = ${env.ACCOUNT_ID}"
-                    echo "ECR_URI = ${env.ECR_URI}"
+                timeout(time: 60, unit: 'SECONDS') {
+                    script {
+                        echo "=== Starting environment variable preparation ==="
+                        echo "Current user: \$(whoami)"
+                        echo "Current PATH: \$PATH"
+                        
+                        echo "=== Testing basic connectivity ==="
+                        sh "curl -v --max-time 5 http://169.254.169.254/ || echo 'Metadata endpoint unreachable'"
+                        
+                        echo "=== Attempting to fetch account ID ==="
+                        def acc = sh(
+                            script: """
+                                set -x
+                                curl -v --connect-timeout 5 --max-time 10 http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId || echo 'FAILED'
+                            """,
+                            returnStdout: true
+                        ).trim()
+        
+                        echo "Raw output: ${acc}"
+                        
+                        if (acc == 'FAILED' || acc == '') {
+                            error("Failed to fetch account ID")
+                        }
+        
+                        env.ACCOUNT_ID = acc
+                        env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
+        
+                        echo "ACCOUNT_ID = ${env.ACCOUNT_ID}"
+                        echo "ECR_URI = ${env.ECR_URI}"
+                    }
                 }
             }
         }
