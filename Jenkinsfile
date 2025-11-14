@@ -21,7 +21,7 @@ pipeline {
             steps {
                 script {
                     def acc = sh(
-                        script: "curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId",
+                        script: "aws sts get-caller-identity --query Account --output text",
                         returnStdout: true
                     ).trim()
 
