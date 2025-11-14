@@ -264,3 +264,7 @@ echo 'export ACCOUNT_ID=$(curl -s http://169.254.169.254/latest/dynamic/instance
 source ~/.bashrc
 echo 'export PATH=$PATH:/var/lib/jenkins/.local/bin' >> /var/lib/jenkins/.bashrc
 source /var/lib/jenkins/.bashrc
+
+sudo chown -R jenkins:jenkins /var/lib/jenkins/workspace/
+sudo chmod -R 755 /var/lib/jenkins/workspace/
+

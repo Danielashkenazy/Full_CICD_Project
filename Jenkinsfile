@@ -19,36 +19,19 @@ pipeline {
         stage('Prepare Environment Variables') {
             agent { label 'master' }
             steps {
-                timeout(time: 60, unit: 'SECONDS') {
-                    script {
-                        echo "=== Starting environment variable preparation ==="
-                        echo "Current user: \$(whoami)"
-                        echo "Current PATH: \$PATH"
-                        
-                        echo "=== Testing basic connectivity ==="
-                        sh "curl -v --max-time 5 http://169.254.169.254/ || echo 'Metadata endpoint unreachable'"
-                        
-                        echo "=== Attempting to fetch account ID ==="
-                        def acc = sh(
-                            script: """
-                                set -x
-                                curl -v --connect-timeout 5 --max-time 10 http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId || echo 'FAILED'
-                            """,
-                            returnStdout: true
-                        ).trim()
-        
-                        echo "Raw output: ${acc}"
-                        
-                        if (acc == 'FAILED' || acc == '') {
-                            error("Failed to fetch account ID")
-                        }
-        
-                        env.ACCOUNT_ID = acc
-                        env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
-        
-                        echo "ACCOUNT_ID = ${env.ACCOUNT_ID}"
-                        echo "ECR_URI = ${env.ECR_URI}"
-                    }
+                script {
+                    
+                    sh 'curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId > /tmp/jenkins_account_id.txt'
+
+                    def acc = sh(script: 'cat /tmp/jenkins_account_id.txt', returnStdout: true).trim()
+
+                    env.ACCOUNT_ID = acc
+                    env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
+
+                    echo "ACCOUNT_ID = ${env.ACCOUNT_ID}"
+                    echo "ECR_URI = ${env.ECR_URI}"
+
+                    sh 'rm -f /tmp/jenkins_account_id.txt'
                 }
             }
         }
