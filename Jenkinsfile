@@ -21,20 +21,19 @@ pipeline {
             steps {
                 script {
                     
-                    sh 'curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .accountId > /tmp/jenkins_account_id.txt'
-
-                    def acc = sh(script: 'cat /tmp/jenkins_account_id.txt', returnStdout: true).trim()
+                    def acc = sh(
+                        script: 'aws sts get-caller-identity --query Account --output text',
+                        returnStdout: true
+                        ).trim()
 
                     env.ACCOUNT_ID = acc
-                    env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
+                        env.ECR_URI    = "${acc}.dkr.ecr.${AWS_REGION}.amazonaws.com/my-app"
 
                     echo "ACCOUNT_ID = ${env.ACCOUNT_ID}"
                     echo "ECR_URI = ${env.ECR_URI}"
-
-                    sh 'rm -f /tmp/jenkins_account_id.txt'
                 }
             }
-        }
+        }       
 
         stage('Lint') {
             agent { label 'master' }

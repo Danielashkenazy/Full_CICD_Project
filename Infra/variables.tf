@@ -4,7 +4,7 @@ variable "aws_region" {
 }
 variable "instance_type" {
   description = "Type of AWS EC2 instance"
-  default     = "t3.micro"
+  default     = "t3.small"
 }
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"

@@ -171,7 +171,9 @@ resource "aws_instance" "app_instance" {
   
   tags = {
     Name = "App_Instance"
+    
   }
+  
   
   # Pass Jenkins private IP to the script
   user_data = templatefile("${path.module}/app_user_data.sh.tmpl", {
@@ -179,7 +181,7 @@ resource "aws_instance" "app_instance" {
   })
   
   # CRITICAL: App must start AFTER Jenkins
-  depends_on = [aws_instance.jenkins_instance]
+  depends_on = [aws_instance.jenkins_instance, aws_nat_gateway.nat]
 }
 
 resource "aws_security_group" "app_sg" {
