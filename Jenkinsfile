@@ -4,6 +4,7 @@ pipeline {
     environment {
         AWS_REGION = "us-east-1"
         IMAGE_TAG  = "latest"
+        PATH       = "${env.PATH}:/var/lib/jenkins/.local/bin"
     }
 
     stages {
@@ -37,10 +38,9 @@ pipeline {
             agent { label 'master' }
             steps {
                 sh """
-                    export PATH=\$PATH:/var/lib/jenkins/.local/bin
                     pip install flake8 --quiet
                     cd app
-                    flake8 app.py --ignore=E501,W292
+                    flake8 app.py --ignore=E501
                 """
             }
         }
@@ -56,7 +56,7 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Docker Image and push to ECR') {
             agent { label 'master' }
             steps {
                 sh """
@@ -64,14 +64,6 @@ pipeline {
                         | docker login --username AWS --password-stdin ${ECR_URI}
 
                     docker build -t ${ECR_URI}:${IMAGE_TAG} ./app
-                """
-            }
-        }
-
-        stage('Push to ECR') {
-            agent { label 'master' }
-            steps {
-                sh """
                     docker push ${ECR_URI}:${IMAGE_TAG}
                 """
             }
@@ -88,7 +80,7 @@ pipeline {
 
                     docker pull ${ECR_URI}:${IMAGE_TAG}
 
-                    docker run -d --name myapp -p 80:80 ${ECR_URI}:${IMAGE_TAG}
+                    docker run -d --name myapp -p 80:5000 ${ECR_URI}:${IMAGE_TAG}
 
                     sleep 3
                     curl -f http://localhost || (echo 'Health check failed' && exit 1)
