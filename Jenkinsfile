@@ -75,6 +75,7 @@ pipeline {
 
         stage('Deploy on App Server') {
             agent { label 'app' }  
+            steps {
                 sh """
                     aws ecr get-login-password --region ${AWS_REGION} \
                         | docker login --username AWS --password-stdin ${ECR_URI}
@@ -91,3 +92,4 @@ pipeline {
             }
         }
     }
+}
