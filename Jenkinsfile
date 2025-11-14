@@ -56,6 +56,7 @@ pipeline {
                 sh """
                     pip install pytest --quiet
                     cd app
+                    pip install -r requirements.txt --quiet
                     pytest -q
                 """
             }
